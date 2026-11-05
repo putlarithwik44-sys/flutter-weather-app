@@ -12,7 +12,7 @@ class WeatherService {
   static const String _forecastBase = 'https://api.open-meteo.com/v1';
   static const _searchCacheDuration = Duration(minutes: 10);
   final http.Client _client;
-  final Map<String, _CitySearchCacheEntry> _citySearchCache = {};
+  late final Map<String, _CitySearchCacheEntry> _citySearchCache = {};
 
   Future<List<CitySearchResult>> searchCities(String query) async {
     if (query.trim().length < 2) return const [];
