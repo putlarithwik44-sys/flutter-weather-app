@@ -401,11 +401,29 @@ class HomeScreen extends StatelessWidget {
     bool initiallyHourly = false,
   }) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ForecastDetailScreen(
-          weather: weather,
-          initiallyHourly: initiallyHourly,
-        ),
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 320),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            ForecastDetailScreen(
+              weather: weather,
+              initiallyHourly: initiallyHourly,
+            ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.035),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
       ),
     );
   }

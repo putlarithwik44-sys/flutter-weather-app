@@ -222,8 +222,12 @@ class _SavedCitiesScreenState extends State<SavedCitiesScreen> {
         ),
         subtitle: Text(
           [
+            city.admin2,
             city.admin1,
-            city.country,
+            if (city.country.isNotEmpty)
+              city.countryCode.isEmpty
+                  ? city.country
+                  : '${city.country} (${city.countryCode})',
           ].where((part) => part.isNotEmpty).join(', '),
           style: const TextStyle(color: AppColors.mutedText),
         ),
@@ -269,6 +273,7 @@ class _SavedCitiesScreenState extends State<SavedCitiesScreen> {
                     const SizedBox(height: 3),
                     Text(
                       [
+                        city.admin2,
                         city.admin1,
                         city.country,
                       ].where((part) => part.isNotEmpty).join(', '),

@@ -6,6 +6,8 @@ class CitySearchResult {
     required this.admin1,
     required this.latitude,
     required this.longitude,
+    this.admin2 = '',
+    this.countryCode = '',
   });
 
   final int id;
@@ -14,8 +16,11 @@ class CitySearchResult {
   final String admin1;
   final double latitude;
   final double longitude;
+  final String admin2;
+  final String countryCode;
 
-  String get displayName => [name, admin1, country].where((e) => e.isNotEmpty).join(', ');
+  String get displayName =>
+      [name, admin2, admin1, country].where((e) => e.isNotEmpty).join(', ');
 
   factory CitySearchResult.fromJson(Map<String, dynamic> json) {
     return CitySearchResult(
@@ -25,6 +30,8 @@ class CitySearchResult {
       admin1: (json['admin1'] ?? '').toString(),
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      admin2: (json['admin2'] ?? '').toString(),
+      countryCode: (json['country_code'] ?? '').toString(),
     );
   }
 }
@@ -50,6 +57,7 @@ class WeatherDay {
     required this.maxTemperature,
     required this.precipitationProbability,
     required this.weatherCode,
+    required this.maxWindSpeed,
   });
 
   final DateTime date;
@@ -57,6 +65,7 @@ class WeatherDay {
   final double maxTemperature;
   final double precipitationProbability;
   final int weatherCode;
+  final double maxWindSpeed;
 }
 
 class WeatherSnapshot {
@@ -115,6 +124,8 @@ class SavedCity {
     required this.temperature,
     required this.weatherCode,
     required this.lastUpdated,
+    this.admin2 = '',
+    this.countryCode = '',
   });
 
   final int id;
@@ -127,34 +138,43 @@ class SavedCity {
   final double temperature;
   final int weatherCode;
   final DateTime lastUpdated;
+  final String admin2;
+  final String countryCode;
 
-  String get displayName => [name, admin1, country].where((e) => e.isNotEmpty).join(', ');
+  String get displayName =>
+      [name, admin2, admin1, country].where((e) => e.isNotEmpty).join(', ');
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'country': country,
-        'admin1': admin1,
-        'latitude': latitude,
-        'longitude': longitude,
-        'isFavorite': isFavorite,
-        'temperature': temperature,
-        'weatherCode': weatherCode,
-        'lastUpdated': lastUpdated.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'country': country,
+    'admin1': admin1,
+    'admin2': admin2,
+    'countryCode': countryCode,
+    'latitude': latitude,
+    'longitude': longitude,
+    'isFavorite': isFavorite,
+    'temperature': temperature,
+    'weatherCode': weatherCode,
+    'lastUpdated': lastUpdated.toIso8601String(),
+  };
 
   factory SavedCity.fromJson(Map<String, dynamic> json) => SavedCity(
-        id: (json['id'] as num?)?.toInt() ?? 0,
-        name: (json['name'] ?? '').toString(),
-        country: (json['country'] ?? '').toString(),
-        admin1: (json['admin1'] ?? '').toString(),
-        latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
-        longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
-        isFavorite: json['isFavorite'] as bool? ?? false,
-        temperature: (json['temperature'] as num?)?.toDouble() ?? 0,
-        weatherCode: (json['weatherCode'] as num?)?.toInt() ?? 0,
-        lastUpdated: DateTime.tryParse((json['lastUpdated'] ?? '').toString()) ?? DateTime.now(),
-      );
+    id: (json['id'] as num?)?.toInt() ?? 0,
+    name: (json['name'] ?? '').toString(),
+    country: (json['country'] ?? '').toString(),
+    admin1: (json['admin1'] ?? '').toString(),
+    latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
+    longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+    isFavorite: json['isFavorite'] as bool? ?? false,
+    temperature: (json['temperature'] as num?)?.toDouble() ?? 0,
+    weatherCode: (json['weatherCode'] as num?)?.toInt() ?? 0,
+    lastUpdated:
+        DateTime.tryParse((json['lastUpdated'] ?? '').toString()) ??
+        DateTime.now(),
+    admin2: (json['admin2'] ?? '').toString(),
+    countryCode: (json['countryCode'] ?? '').toString(),
+  );
 }
 
 enum TemperatureUnit { celsius, fahrenheit }

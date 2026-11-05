@@ -14,11 +14,12 @@ class WeatherService {
 
   Future<List<CitySearchResult>> searchCities(String query) async {
     if (query.trim().length < 2) return const [];
+    final normalizedQuery = query.trim().toLowerCase();
 
     final uri = Uri.parse('$_geocodingBase/search').replace(
       queryParameters: {
         'name': query.trim(),
-        'count': '8',
+        'count': '15',
         'language': 'en',
         'format': 'json',
       },
@@ -31,9 +32,23 @@ class WeatherService {
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
-    return (body['results'] as List<dynamic>? ?? const [])
+    final results = (body['results'] as List<dynamic>? ?? const [])
         .map((item) => CitySearchResult.fromJson(item as Map<String, dynamic>))
         .toList();
+    final rankedResults = results.asMap().entries.toList();
+    rankedResults.sort((a, b) {
+      int rank(CitySearchResult city) {
+        final name = city.name.toLowerCase();
+        if (name == normalizedQuery) return 0;
+        if (name.startsWith(normalizedQuery)) return 1;
+        if (name.contains(normalizedQuery)) return 2;
+        return 3;
+      }
+
+      final nameOrder = rank(a.value).compareTo(rank(b.value));
+      return nameOrder == 0 ? a.key.compareTo(b.key) : nameOrder;
+    });
+    return rankedResults.map((entry) => entry.value).toList();
   }
 
   Future<WeatherSnapshot> fetchWeatherForCoordinates({
@@ -48,7 +63,7 @@ class WeatherService {
         'longitude': longitude.toString(),
         'current': 'temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,uv_index',
         'hourly': 'temperature_2m,weather_code,precipitation_probability',
-        'daily': 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset',
+        'daily': 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset',
         'timezone': 'auto',
         'forecast_days': '7',
         'temperature_unit': 'celsius',
@@ -77,6 +92,7 @@ class WeatherService {
     final dailyMax = _numbers(daily['temperature_2m_max']);
     final dailyMin = _numbers(daily['temperature_2m_min']);
     final dailyRain = _numbers(daily['precipitation_probability_max']);
+    final dailyWind = _numbers(daily['wind_speed_10m_max']);
     final dailyCodes = _integers(daily['weather_code']);
     final sunriseTimes = _dateTimes(daily['sunrise']);
     final sunsetTimes = _dateTimes(daily['sunset']);
@@ -128,6 +144,7 @@ class WeatherService {
           maxTemperature: dailyMax[index],
           precipitationProbability: _at(dailyRain, index),
           weatherCode: _atInt(dailyCodes, index),
+          maxWindSpeed: _at(dailyWind, index),
         ),
       ),
     );
