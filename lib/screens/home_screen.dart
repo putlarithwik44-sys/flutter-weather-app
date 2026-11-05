@@ -99,10 +99,6 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => _openCitySearch(context),
-                      icon: const Icon(Icons.search_rounded),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -424,10 +420,20 @@ class _CitySearchSheet extends StatefulWidget {
 
 class _CitySearchSheetState extends State<_CitySearchSheet> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
+  }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -435,109 +441,116 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
   Widget build(BuildContext context) {
     final provider = context.watch<WeatherProvider>();
     final mediaQuery = MediaQuery.of(context);
-    final availableHeight =
-        mediaQuery.size.height - mediaQuery.viewInsets.bottom - 36;
-    final maxHeight = mediaQuery.size.height * 0.8;
-    final sheetHeight = availableHeight < maxHeight
-        ? availableHeight
-        : maxHeight;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 18,
-        bottom: mediaQuery.viewInsets.bottom + 18,
-      ),
-      child: SizedBox(
-        height: sheetHeight,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 150),
+      padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
+      child: SafeArea(
+        top: false,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.8),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Search city',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                Row(
+                  children: [
+                    const Text(
+                      'Search city',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.search,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Enter city name',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    filled: true,
+                    fillColor: Theme.of(context).colorScheme.surface,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: provider.searchCities,
                 ),
+                const SizedBox(height: 16),
+                if (provider.isSearching)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                if (provider.searchError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      provider.searchError!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                if (!provider.isSearching && provider.searchResults.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      _controller.text.trim().length < 2
+                          ? 'Type at least 2 letters to search for a city.'
+                          : 'No matching cities found.',
+                      style: const TextStyle(color: AppColors.mutedText),
+                    ),
+                  ),
+                if (provider.searchResults.isNotEmpty)
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: provider.searchResults.length,
+                      itemBuilder: (context, index) {
+                        final city = provider.searchResults[index];
+                        return ListTile(
+                          title: Text(city.name),
+                          subtitle: Text(city.country),
+                          onTap: () async {
+                            final selected = await provider.selectCity(city);
+                            if (!context.mounted) return;
+                            if (selected) {
+                              Navigator.of(context).pop();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    provider.errorMessage ??
+                                        'Unable to load this city.',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ),
               ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _controller,
-              autofocus: true,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-              decoration: InputDecoration(
-                hintText: 'Enter city name',
-                prefixIcon: const Icon(Icons.search_rounded),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onChanged: provider.searchCities,
-            ),
-            const SizedBox(height: 16),
-            if (provider.isSearching)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            if (provider.searchError != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  provider.searchError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-            if (!provider.isSearching && provider.searchResults.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  _controller.text.trim().length < 2
-                      ? 'Type at least 2 letters to search for a city.'
-                      : 'No matching cities found.',
-                  style: const TextStyle(color: AppColors.mutedText),
-                ),
-              ),
-            if (provider.searchResults.isNotEmpty)
-              Expanded(
-                child: ListView.builder(
-                  itemCount: provider.searchResults.length,
-                  itemBuilder: (context, index) {
-                    final city = provider.searchResults[index];
-                    return ListTile(
-                      title: Text(city.name),
-                      subtitle: Text(city.country),
-                      onTap: () async {
-                        final selected = await provider.selectCity(city);
-                        if (!context.mounted) return;
-                        if (selected) {
-                          Navigator.of(context).pop();
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                provider.errorMessage ??
-                                    'Unable to load this city.',
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );
