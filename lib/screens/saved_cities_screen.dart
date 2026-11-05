@@ -7,10 +7,11 @@ import '../models/weather_models.dart';
 import '../providers/weather_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/weather_utils.dart';
-import 'forecast_detail_screen.dart';
 
 class SavedCitiesScreen extends StatefulWidget {
-  const SavedCitiesScreen({super.key});
+  const SavedCitiesScreen({super.key, required this.onCitySelected});
+
+  final VoidCallback onCitySelected;
 
   @override
   State<SavedCitiesScreen> createState() => _SavedCitiesScreenState();
@@ -385,24 +386,21 @@ class _SavedCitiesScreenState extends State<SavedCitiesScreen> {
 
   Future<void> _openCityWeather(BuildContext context, SavedCity city) async {
     setState(() => _openingCityId = city.id);
-    try {
-      final weather = await context.read<WeatherProvider>().fetchCityWeather(
-        city,
-      );
-      if (!context.mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ForecastDetailScreen(weather: weather),
+    final provider = context.read<WeatherProvider>();
+    final selected = await provider.selectSavedCity(city);
+    if (!context.mounted) return;
+    if (selected) {
+      widget.onCitySelected();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            provider.errorMessage ?? 'Could not load ${city.name}.',
+          ),
         ),
       );
-    } catch (error) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not load ${city.name}: $error')),
-      );
-    } finally {
-      if (mounted) setState(() => _openingCityId = null);
     }
+    if (mounted) setState(() => _openingCityId = null);
   }
 }
 

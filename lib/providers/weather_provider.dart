@@ -122,6 +122,7 @@ class WeatherProvider extends ChangeNotifier {
 
     isSearching = true;
     searchError = null;
+    searchResults = const [];
     notifyListeners();
     try {
       final results = await _weatherService.searchCities(query);
@@ -188,6 +189,19 @@ class WeatherProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  Future<bool> selectSavedCity(SavedCity city) {
+    return selectCity(
+      CitySearchResult(
+        id: city.id,
+        name: city.name,
+        country: city.country,
+        admin1: city.admin1,
+        latitude: city.latitude,
+        longitude: city.longitude,
+      ),
+    );
   }
 
   Future<WeatherSnapshot> fetchCityWeather(SavedCity city) {
