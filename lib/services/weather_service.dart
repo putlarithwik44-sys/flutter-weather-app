@@ -10,11 +10,17 @@ class WeatherService {
   static const String _geocodingBase =
       'https://geocoding-api.open-meteo.com/v1';
   static const String _forecastBase = 'https://api.open-meteo.com/v1';
+  static const _searchCacheDuration = Duration(minutes: 10);
   final http.Client _client;
+  final Map<String, _CitySearchCacheEntry> _citySearchCache = {};
 
   Future<List<CitySearchResult>> searchCities(String query) async {
     if (query.trim().length < 2) return const [];
     final normalizedQuery = query.trim().toLowerCase();
+    final cached = _citySearchCache[normalizedQuery];
+    if (cached != null && cached.expiresAt.isAfter(DateTime.now())) {
+      return cached.results;
+    }
 
     final uri = Uri.parse('$_geocodingBase/search').replace(
       queryParameters: {
@@ -48,7 +54,15 @@ class WeatherService {
       final nameOrder = rank(a.value).compareTo(rank(b.value));
       return nameOrder == 0 ? a.key.compareTo(b.key) : nameOrder;
     });
-    return rankedResults.map((entry) => entry.value).toList();
+    final sortedResults = rankedResults.map((entry) => entry.value).toList();
+    if (_citySearchCache.length >= 30) {
+      _citySearchCache.remove(_citySearchCache.keys.first);
+    }
+    _citySearchCache[normalizedQuery] = _CitySearchCacheEntry(
+      results: sortedResults,
+      expiresAt: DateTime.now().add(_searchCacheDuration),
+    );
+    return sortedResults;
   }
 
   Future<WeatherSnapshot> fetchWeatherForCoordinates({
@@ -181,4 +195,11 @@ class WeatherApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class _CitySearchCacheEntry {
+  const _CitySearchCacheEntry({required this.results, required this.expiresAt});
+
+  final List<CitySearchResult> results;
+  final DateTime expiresAt;
 }

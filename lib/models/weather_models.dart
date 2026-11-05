@@ -23,17 +23,41 @@ class CitySearchResult {
       [name, admin2, admin1, country].where((e) => e.isNotEmpty).join(', ');
 
   factory CitySearchResult.fromJson(Map<String, dynamic> json) {
+    final id = (json['id'] as num?)?.toInt() ?? 0;
+    final rawName = (json['name'] ?? '').toString();
+    final countryCode = (json['country_code'] ?? '').toString();
+    final admin1 = (json['admin1'] ?? '').toString();
     return CitySearchResult(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      name: (json['name'] ?? '').toString(),
+      id: id,
+      name: _correctKnownCityName(
+        id: id,
+        name: rawName,
+        countryCode: countryCode,
+        admin1: admin1,
+      ),
       country: (json['country'] ?? '').toString(),
-      admin1: (json['admin1'] ?? '').toString(),
+      admin1: admin1,
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
       admin2: (json['admin2'] ?? '').toString(),
-      countryCode: (json['country_code'] ?? '').toString(),
+      countryCode: countryCode,
     );
   }
+}
+
+String _correctKnownCityName({
+  required int id,
+  required String name,
+  required String countryCode,
+  required String admin1,
+}) {
+  if (id == 1254757 &&
+      name.toLowerCase() == 'thenali' &&
+      (countryCode.isEmpty || countryCode.toUpperCase() == 'IN') &&
+      admin1.toLowerCase().contains('andhra pradesh')) {
+    return 'Tenali';
+  }
+  return name;
 }
 
 class WeatherHour {
@@ -159,22 +183,33 @@ class SavedCity {
     'lastUpdated': lastUpdated.toIso8601String(),
   };
 
-  factory SavedCity.fromJson(Map<String, dynamic> json) => SavedCity(
-    id: (json['id'] as num?)?.toInt() ?? 0,
-    name: (json['name'] ?? '').toString(),
-    country: (json['country'] ?? '').toString(),
-    admin1: (json['admin1'] ?? '').toString(),
-    latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
-    longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
-    isFavorite: json['isFavorite'] as bool? ?? false,
-    temperature: (json['temperature'] as num?)?.toDouble() ?? 0,
-    weatherCode: (json['weatherCode'] as num?)?.toInt() ?? 0,
-    lastUpdated:
-        DateTime.tryParse((json['lastUpdated'] ?? '').toString()) ??
-        DateTime.now(),
-    admin2: (json['admin2'] ?? '').toString(),
-    countryCode: (json['countryCode'] ?? '').toString(),
-  );
+  factory SavedCity.fromJson(Map<String, dynamic> json) {
+    final id = (json['id'] as num?)?.toInt() ?? 0;
+    final rawName = (json['name'] ?? '').toString();
+    final admin1 = (json['admin1'] ?? '').toString();
+    final countryCode = (json['countryCode'] ?? '').toString();
+    return SavedCity(
+      id: id,
+      name: _correctKnownCityName(
+        id: id,
+        name: rawName,
+        countryCode: countryCode,
+        admin1: admin1,
+      ),
+      country: (json['country'] ?? '').toString(),
+      admin1: admin1,
+      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      isFavorite: json['isFavorite'] as bool? ?? false,
+      temperature: (json['temperature'] as num?)?.toDouble() ?? 0,
+      weatherCode: (json['weatherCode'] as num?)?.toInt() ?? 0,
+      lastUpdated:
+          DateTime.tryParse((json['lastUpdated'] ?? '').toString()) ??
+          DateTime.now(),
+      admin2: (json['admin2'] ?? '').toString(),
+      countryCode: countryCode,
+    );
+  }
 }
 
 enum TemperatureUnit { celsius, fahrenheit }

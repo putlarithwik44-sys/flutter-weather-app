@@ -50,7 +50,12 @@ class _SavedCitiesScreenState extends State<SavedCitiesScreen> {
           onRefresh: provider.refreshSavedCities,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            padding: EdgeInsets.fromLTRB(
+              MediaQuery.sizeOf(context).width < 400 ? 16 : 24,
+              20,
+              MediaQuery.sizeOf(context).width < 400 ? 16 : 24,
+              28,
+            ),
             children: [
               Row(
                 children: [
@@ -102,7 +107,7 @@ class _SavedCitiesScreenState extends State<SavedCitiesScreen> {
                 ),
                 onChanged: _onSearchChanged,
                 decoration: InputDecoration(
-                  hintText: 'Search or add a city',
+                  hintText: 'Search city, district or state',
                   prefixIcon: const Icon(Icons.search_rounded),
                   suffixIcon: _query.isEmpty
                       ? null
@@ -196,11 +201,11 @@ class _SavedCitiesScreenState extends State<SavedCitiesScreen> {
     setState(() => _query = value);
     _searchDebounce?.cancel();
     final query = value.trim();
+    context.read<WeatherProvider>().searchCities('');
     if (query.length < 2) {
-      context.read<WeatherProvider>().searchCities('');
       return;
     }
-    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
       if (mounted) context.read<WeatherProvider>().searchCities(query);
     });
   }
@@ -217,17 +222,17 @@ class _SavedCitiesScreenState extends State<SavedCitiesScreen> {
           child: Icon(Icons.location_on_outlined, color: AppColors.primary),
         ),
         title: Text(
-          city.name,
+          city.displayName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         subtitle: Text(
           [
-            city.admin2,
-            city.admin1,
             if (city.country.isNotEmpty)
               city.countryCode.isEmpty
                   ? city.country
-                  : '${city.country} (${city.countryCode})',
+                  : '${city.country} · ${city.countryCode}',
           ].where((part) => part.isNotEmpty).join(', '),
           style: const TextStyle(color: AppColors.mutedText),
         ),
@@ -252,48 +257,49 @@ class _SavedCitiesScreenState extends State<SavedCitiesScreen> {
       child: InkWell(
         onTap: () => _openCityWeather(context, city),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(16, 14, 12, 10),
+          child: Column(
             children: [
-              Icon(
-                WeatherUtils.getWeatherIcon(city.weatherCode),
-                size: 36,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      city.name,
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      [
-                        city.admin2,
-                        city.admin1,
-                        city.country,
-                      ].where((part) => part.isNotEmpty).join(', '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall
-                          ?.copyWith(color: AppColors.mutedText),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      WeatherUtils.getWeatherLabel(city.weatherCode),
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Row(
                 children: [
+                  Icon(
+                    WeatherUtils.getWeatherIcon(city.weatherCode),
+                    size: 34,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          city.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          [
+                            city.admin2,
+                            city.admin1,
+                            city.country,
+                          ].where((part) => part.isNotEmpty).join(', '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.mutedText),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          WeatherUtils.getWeatherLabel(city.weatherCode),
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Text(
                     WeatherUtils.formatTemperature(
                       city.temperature,
@@ -302,47 +308,52 @@ class _SavedCitiesScreenState extends State<SavedCitiesScreen> {
                     style: Theme.of(context).textTheme.headlineSmall
                         ?.copyWith(fontWeight: FontWeight.w800),
                   ),
-                  if (_openingCityId == city.id)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else
-                    Text(
-                      'Updated ${WeatherUtils.formatTime(city.lastUpdated)}',
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _openingCityId == city.id
+                          ? 'Loading forecast…'
+                          : 'Updated ${WeatherUtils.formatTime(city.lastUpdated)}',
                       style: Theme.of(context).textTheme.labelSmall
                           ?.copyWith(color: AppColors.mutedText),
                     ),
-                ],
-              ),
-              const SizedBox(width: 4),
-              Column(
-                children: [
-                  IconButton(
-                    tooltip: city.isFavorite
-                        ? 'Remove favorite'
-                        : 'Mark favorite',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => provider.toggleFavorite(city.id),
-                    icon: Icon(
-                      city.isFavorite
-                          ? Icons.star_rounded
-                          : Icons.star_border_rounded,
-                      color: city.isFavorite
-                          ? AppColors.sunnyAccent
-                          : AppColors.mutedText,
-                    ),
                   ),
-                  IconButton(
-                    tooltip: 'Remove ${city.name}',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _removeCity(context, city),
-                    icon: const Icon(
-                      Icons.delete_outline_rounded,
-                      color: AppColors.mutedText,
+                  if (_openingCityId == city.id)
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else ...[
+                    IconButton(
+                      tooltip: city.isFavorite
+                          ? 'Remove favorite'
+                          : 'Mark favorite',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => provider.toggleFavorite(city.id),
+                      icon: Icon(
+                        city.isFavorite
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        color: city.isFavorite
+                            ? AppColors.sunnyAccent
+                            : AppColors.mutedText,
+                      ),
                     ),
-                  ),
+                    IconButton(
+                      tooltip: 'Remove ${city.name}',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _removeCity(context, city),
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppColors.mutedText,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],
